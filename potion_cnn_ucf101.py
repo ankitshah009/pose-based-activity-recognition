@@ -34,7 +34,7 @@ BASE_DIR = os.getcwd()
 #POTION_DIR_NEG = DATA_DIR + '/potion/negative/'
 
 # frankenstien machine paths
-DATA_DIR = '/data/MM1/aps1/aniru/aniru/repo/dataset/UCF101'
+DATA_DIR = '/media/hdd1/aps1/aniru/aniru/repo/dataset/UCF101'
 RGB_DIR  = DATA_DIR + '/jpegs_256/'
 POSE_DIR = DATA_DIR + '/heatmaps/'
 UCF_LIST = BASE_DIR + '/UCF_list/'
@@ -49,6 +49,7 @@ parser.add_argument('--classes', default=101, type=int, metavar='N', help='numbe
 args = parser.parse_args()
 # Create model, optimizer and loss function
 model = alexnet(pretrained=False,num_classes=args.classes)
+model.xavier_init()
 optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=0.0001)
 loss_fn = nn.CrossEntropyLoss()
 
@@ -111,7 +112,7 @@ def test(test_loader):
     print(confusion_matrix.diag()/confusion_matrix.sum(1))
 
     # Compute the average acc and loss over all test images
-    test_acc = test_acc.item()/ float(len(test_loader)*args.batch_size)
+    test_acc = float(test_acc.item())/ (len(test_loader)*args.batch_size)
 
     return test_acc
 
@@ -156,7 +157,7 @@ def train(num_epochs, train_loader, test_loader):
             # Adjust parameters according to the computed gradients
             optimizer.step()
 
-            train_loss += loss.cpu().data[0] * images.size(0)
+            train_loss += loss * images.size(0)
             _, prediction = torch.max(outputs.data, 1)
             
             train_acc += torch.sum(prediction == labels.data)
@@ -181,9 +182,10 @@ def train(num_epochs, train_loader, test_loader):
         # Call the learning rate adjustment function
         adjust_learning_rate(epoch)
 
+        print("train_acc",train_acc.item())
         # Compute the average acc and loss over all training images
-        train_acc = train_acc.item() / float(len(train_loader)*args.batch_size)
-        train_loss = train_loss.item() / float(len(train_loader)*args.batch_size)
+        train_acc = float(train_acc.item()) / (len(train_loader)*args.batch_size)
+        train_loss = train_loss.item() / (len(train_loader)*args.batch_size)
 
         # Evaluate on the test set
         test_acc = test(test_loader)
@@ -226,7 +228,7 @@ if __name__ == "__main__":
     #                    )
     data_loader = potion_dataloader(
 			BATCH_SIZE=arg.batch_size,
-			num_workers=20,
+			num_workers=19,
 			rgb_path=DATA_DIR,
 			pose_path=POSE_DIR,
 			ucf_list=UCF_LIST,
