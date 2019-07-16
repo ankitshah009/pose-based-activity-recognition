@@ -1,5 +1,7 @@
 # pose-based-activity-recognition
 
+Results from - https://github.com/ankitshah009/actionRecognition
+
 # two-stream-action-recognition
 We use a spatial and motion stream cnn with ResNet101 for modeling video information in UCF101 dataset.
 ## Reference Paper
