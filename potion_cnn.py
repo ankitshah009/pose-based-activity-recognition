@@ -1,16 +1,13 @@
 import argparse
 import os
 from tqdm import tqdm
-import cv2
 
 import torch
 import torch.nn as nn
-from torchvision.datasets import CIFAR10
 from torchvision import transforms
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 from torch.autograd import Variable
-import numpy as np
 
 from potnet import * 
 from sed_dataloader import *
@@ -18,39 +15,8 @@ from sed_dataloader import *
 # Initializing path constants
 #os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-BASE_DIR = os.getcwd()
-
-DATA_DIR = '/data/MM2/aps1/dataset/sed'
-VIDEO_LIST = DATA_DIR
-
-RGB_DIR_GT  = DATA_DIR + '/gt/i3d_rgb/'
-RGB_DIR_NEG  = DATA_DIR + '/negative/i3d_rgb/'
-
-POSE_DIR_GT = DATA_DIR + '/gt/openpose_heatmap.jiac/'
-POSE_DIR_NEG = DATA_DIR + '/negative/openpose_heatmap.jiac/'
-
-POTION_DIR_GT = DATA_DIR + '/potion/gt/'
-POTION_DIR_NEG = DATA_DIR + '/potion/negative/'
-
-#Initialize arguments
-parser = argparse.ArgumentParser(description='UCF101 spatial stream on resnet101')
-parser.add_argument('--epochs', default=500, type=int, metavar='N', help='number of total epochs')
-parser.add_argument('--batch-size', default=25, type=int, metavar='N', help='mini-batch size (default: 25)')
-parser.add_argument('--num_classes', default=101, type=int, metavar='N', help='number of classes (default: 101)')
-parser.add_argument('--lr', default=5e-4, type=float, metavar='LR', help='initial learning rate')
-parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
-args = parser.parse_args()
-
-# Create model, optimizer and loss function
-model = alexnet(pretrained=False,num_classes=args.num_classes)
-optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=0.0001)
-loss_fn = nn.CrossEntropyLoss()
-
-
 # Create a learning rate adjustment function that divides the learning rate by 10 every 30 epochs
-def adjust_learning_rate(epoch):
-    lr = args.lr
-
+def adjust_learning_rate(epoch, lr):
     if epoch > 180:
         lr = lr / 1000000
     elif epoch > 150:
@@ -67,12 +33,13 @@ def adjust_learning_rate(epoch):
     for param_group in optimizer.param_groups:
         param_group["lr"] = lr
 
-def save_models(epoch):
+
+def save_model(model, epoch):
     torch.save(model.state_dict(), "PotionModel_{}.model".format(epoch))
-    print("Chekcpoint saved")
+    print("Checkpoint saved")
 
 
-def test(test_loader):
+def test(model, test_loader, batch_size):
     model.eval()
     test_acc = 0.0
     
@@ -104,12 +71,12 @@ def test(test_loader):
     print(confusion_matrix.diag()/confusion_matrix.sum(1))
 
     # Compute the average acc and loss over all test images
-    test_acc = test_acc.item()/ float(len(test_loader)*args.batch_size)
+    test_acc = test_acc.item() / float(len(test_loader)*batch_size)
 
     return test_acc
 
 
-def train(num_epochs, train_loader, test_loader):
+def train(model, num_epochs, train_loader, test_loader, lr, batch_size):
     best_acc = 0.0
 
     for epoch in range(num_epochs):
@@ -170,11 +137,11 @@ def train(num_epochs, train_loader, test_loader):
         print(confusion_matrix.diag()/confusion_matrix.sum(1))
 
         # Call the learning rate adjustment function
-        adjust_learning_rate(epoch)
+        adjust_learning_rate(epoch, lr)
 
         # Compute the average acc and loss over all training images
-        train_acc = train_acc.item() / float(len(train_loader)*args.batch_size)
-        train_loss = train_loss.item() / float(len(train_loader)*args.batch_size)
+        train_acc = train_acc.item() / float(len(train_loader) * batch_size)
+        train_loss = train_loss.item() / float(len(train_loader) * batch_size)
 
         # Evaluate on the test set
         test_acc = test(test_loader)
@@ -186,7 +153,7 @@ def train(num_epochs, train_loader, test_loader):
 
         # Save the model if the test acc is greater than our current best
         if test_acc > best_acc:
-            save_models(epoch)
+            save_model(model, epoch)
             best_acc = test_acc
 
         # Print the metrics
@@ -194,10 +161,35 @@ def train(num_epochs, train_loader, test_loader):
 
 
 if __name__ == "__main__":
+    # Initialize arguments
+    parser = argparse.ArgumentParser(description='UCF101 spatial stream on ResNet101')
+    parser.add_argument('--epochs', default=500, type=int, metavar='N', help='number of total epochs')
+    parser.add_argument('--batch-size', default=25, type=int, metavar='N', help='mini-batch size (default: 25)')
+    parser.add_argument('--num_classes', default=101, type=int, metavar='N', help='number of classes (default: 101)')
+    parser.add_argument('--lr', default=5e-4, type=float, metavar='LR', help='initial learning rate')
+    parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
+    parser.add_argument('--data_dir', type=str, default='/data/MM2/aps1/dataset/sed', help='Directory that stores data')
+    args = parser.parse_args()
+    print(args)
 
-    global arg
-    arg = parser.parse_args()
-    print(arg)
+    BASE_DIR = os.getcwd()
+
+    DATA_DIR = args.data_dir
+    VIDEO_LIST = DATA_DIR
+
+    RGB_DIR_GT = DATA_DIR + '/gt/i3d_rgb/'
+    RGB_DIR_NEG = DATA_DIR + '/negative/i3d_rgb/'
+
+    POSE_DIR_GT = DATA_DIR + '/gt/openpose_heatmap.jiac/'
+    POSE_DIR_NEG = DATA_DIR + '/negative/openpose_heatmap.jiac/'
+
+    POTION_DIR_GT = DATA_DIR + '/potion/gt/'
+    POTION_DIR_NEG = DATA_DIR + '/potion/negative/'
+
+    # Create model, optimizer and loss function
+    model = alexnet(pretrained=False, num_classes=args.num_classes)
+    optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=0.0001)
+    loss_fn = nn.CrossEntropyLoss()
 
     # Check if gpu support is available
     cuda_avail = torch.cuda.is_available()
@@ -211,7 +203,7 @@ if __name__ == "__main__":
     #Prepare DataLoader
     print('Preparing dataloader')
     data_loader = sed_dataloader(
-                        BATCH_SIZE=arg.batch_size,
+                        BATCH_SIZE=args.batch_size,
                         num_workers=8,
                         rgb_path=DATA_DIR,
                         pose_path_gt=POSE_DIR_GT,
@@ -221,5 +213,5 @@ if __name__ == "__main__":
     print('Running dataloader')
     train_loader, test_loader, test_video = data_loader.run()
 
-    print(f'Training the model for {arg.epochs} epochs')
-    train(arg.epochs, train_loader, test_loader)
+    print(f'Training the model for {args.epochs} epochs')
+    train(model, args.epochs, train_loader, test_loader, args.lr, args.batch_size)
