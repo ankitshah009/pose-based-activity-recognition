@@ -1,5 +1,6 @@
 import argparse
 import os
+import os.path as osp
 from tqdm import tqdm
 
 import torch
@@ -177,14 +178,14 @@ if __name__ == "__main__":
     DATA_DIR = args.data_dir
     VIDEO_LIST = DATA_DIR
 
-    RGB_DIR_GT = DATA_DIR + '/gt/i3d_rgb/'
-    RGB_DIR_NEG = DATA_DIR + '/negative/i3d_rgb/'
+    RGB_DIR_GT = osp.join(DATA_DIR, '/gt/i3d_rgb/')
+    RGB_DIR_NEG = osp.join(DATA_DIR, '/negative/i3d_rgb/')
 
-    POSE_DIR_GT = DATA_DIR + '/gt/openpose_heatmap.jiac/'
-    POSE_DIR_NEG = DATA_DIR + '/negative/openpose_heatmap.jiac/'
+    POSE_DIR_GT = osp.join(DATA_DIR, '/gt/openpose_heatmap.jiac/')
+    POSE_DIR_NEG = osp.join(DATA_DIR, '/negative/openpose_heatmap.jiac/')
 
-    POTION_DIR_GT = DATA_DIR + '/potion/gt/'
-    POTION_DIR_NEG = DATA_DIR + '/potion/negative/'
+    POTION_DIR_GT = osp.join(DATA_DIR, '/potion/gt/')
+    POTION_DIR_NEG = osp.join(DATA_DIR, '/potion/negative/')
 
     # Create model, optimizer and loss function
     model = alexnet(pretrained=False, num_classes=args.num_classes)
