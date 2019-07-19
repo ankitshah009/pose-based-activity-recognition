@@ -14,14 +14,13 @@ import numpy as np
 
 from potnet import * 
 from sed_dataloader import *
-# from alexnet import *
 
 # Initializing path constants
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 BASE_DIR = os.getcwd()
 
-DATA_DIR = '/data/MM1/aps1/aniru/aniru/repo/dataset/sed'
+DATA_DIR = '/data/MM2/aps1/dataset/sed'
 VIDEO_LIST = DATA_DIR
 
 RGB_DIR_GT  = DATA_DIR + '/gt/i3d_rgb/'
@@ -32,12 +31,6 @@ POSE_DIR_NEG = DATA_DIR + '/negative/openpose_heatmap.jiac/'
 
 POTION_DIR_GT = DATA_DIR + '/potion/gt/'
 POTION_DIR_NEG = DATA_DIR + '/potion/negative/'
-
-# frankenstien machine paths
-# DATA_DIR = '/media/bighdd1/arayasam/dataset/UCF101'
-# RGB_DIR  = DATA_DIR + '/jpegs_256/'
-# POSE_DIR = DATA_DIR + '/heatmaps/'
-# UCF_LIST = BASE_DIR + '/UCF_list/'
 
 #Initialize arguments
 parser = argparse.ArgumentParser(description='UCF101 spatial stream on resnet101')
@@ -208,12 +201,15 @@ if __name__ == "__main__":
 
     # Check if gpu support is available
     cuda_avail = torch.cuda.is_available()
+    print(f'CUDA is {"NOT " if not cuda_avail else " "}available')
 
     #if cuda is available, move the model to the GPU
     if cuda_avail:
+        print('Loading model into GPU')
         model.cuda()
 
     #Prepare DataLoader
+    print('Preparing dataloader')
     data_loader = sed_dataloader(
                         BATCH_SIZE=arg.batch_size,
                         num_workers=8,
@@ -222,6 +218,8 @@ if __name__ == "__main__":
                         pose_path_neg=POSE_DIR_NEG
                         )
 
+    print('Running dataloader')
     train_loader, test_loader, test_video = data_loader.run()
 
+    print(f'Training the model for {arg.epochs} epochs')
     train(arg.epochs, train_loader, test_loader)

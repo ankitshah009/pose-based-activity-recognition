@@ -13,7 +13,7 @@ import torch
 from pathlib import Path
 
 BASE_DIR = os.getcwd()
-DATA_DIR = '/data/MM1/aps1/aniru/aniru/repo/dataset/sed'
+DATA_DIR = '/data/MM2/aps1/dataset/sed'
 # DATA_DIR = '/home/ubuntu/dataset/UCF101'
 
 VIDEO_LIST = DATA_DIR
@@ -178,7 +178,7 @@ class sed_dataloader():
 
     def load_train(self):
         with open(DATA_DIR + '/train.pkl', "rb") as file:
-            dic = pickle.load(file)
+            dic = pickle.load(file, encoding='latin1')
 
         train_dic = []
         for sample in dic:
@@ -196,7 +196,7 @@ class sed_dataloader():
 
     def load_test(self):
         with open(DATA_DIR + '/test.pkl', "rb") as file:
-            dic = pickle.load(file)
+            dic = pickle.load(file, encoding='latin1')
 
         test_dic = []
         for sample in dic:
@@ -260,8 +260,15 @@ class sed_dataloader():
         return val_loader
 
 if __name__ == '__main__':
-    
-    dataloader = sed_dataloader(BATCH_SIZE=1, num_workers=1, 
+    print('Dataloader params:')
+    print(f'''
+        Batch Size:    32
+        Num Workers:   8
+        RGB Path:      {rgb_path}
+        Pose GT Path:  {POSE_DIR_GT}
+        Pose Neg Path: {POSE_DIR_NEG}
+    ''')
+    dataloader = sed_dataloader(BATCH_SIZE=32, num_workers=8, 
                                 rgb_path=DATA_DIR,
                                 pose_path_gt=POSE_DIR_GT,
                                 pose_path_neg=POSE_DIR_NEG
